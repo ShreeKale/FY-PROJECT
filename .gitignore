@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment variables
+.env
+.env.*
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ML / generated files
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.pth
+
+# Python test/cache files
+.pytest_cache/
+.coverage
+
+# Large ML datasets
+BACKEND/ML/dataset/

@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI-HIDS Security Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: #f5f7fa;
+            color: #172033;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .metric-card {
+            transition: all 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 16px rgba(15, 23, 42, 0.07);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .online-dot {
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+        }
+
+        .offline-dot {
+            background: #ef4444;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #172033;
+        }
+
+        .section-subtitle {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .view-btn {
+            border: 1px solid #dbe2ea;
+            background: white;
+            color: #334155;
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .view-btn:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-green {
+            color: #15803d;
+            background: #dcfce7;
+        }
+
+        .badge-red {
+            color: #b91c1c;
+            background: #fee2e2;
+        }
+
+        .badge-blue {
+            color: #1d4ed8;
+            background: #dbeafe;
+        }
+
+        .badge-yellow {
+            color: #a16207;
+            background: #fef3c7;
+        }
+
+        .badge-gray {
+            color: #475569;
+            background: #f1f5f9;
+        }
+
+        .scroll-area {
+            overflow-x: auto;
+        }
+
+        .hidden-row {
+            display: none;
+        }
+
+        .loading {
+            color: #94a3b8;
+            text-align: center;
+            padding: 22px !important;
+        }
+
+        .empty {
+            color: #94a3b8;
+            text-align: center;
+            padding: 22px !important;
+        }
+
+        .error-row {
+            color: #dc2626;
+            background: #fef2f2;
+            text-align: center;
+            padding: 16px !important;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     NAVBAR
+========================================================= -->
+
+<nav class="bg-[#111827] text-white">
+    <div class="max-w-[1500px] mx-auto px-5 py-3.5">
+
+        <div class="flex items-center justify-between">
+
+            <div class="flex items-center gap-3">
+
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <span class="text-sm font-bold">AI</span>
+                </div>
+
+                <div>
+                    <div class="font-bold text-sm tracking-wide">
+                        AI-HIDS
+                    </div>
+
+                    <div class="text-[10px] text-gray-400 tracking-widest">
+                        SEC-OPS v2.4
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="flex items-center gap-4">
+
+                <div class="hidden sm:block text-right">
+                    <div class="text-[10px] text-gray-400">
+                        HOST
+                    </div>
+
+                    <div id="navHostId" class="text-xs font-semibold">
+                        PC-001
+                    </div>
+                </div>
+
+                <div
+                    id="navStatus"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10"
+                >
+                    <span
+                        id="navStatusDot"
+                        class="status-dot online-dot"
+                    ></span>
+
+                    <span
+                        id="navStatusText"
+                        class="text-[10px] font-semibold"
+                    >
+                        ONLINE
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</nav>
+
+
+<!-- =========================================================
+     MAIN
+========================================================= -->
+
+<main class="max-w-[1500px] mx-auto px-4 sm:px-5 py-5">
+
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+
+        <div>
+            <h1 class="text-xl font-bold text-gray-900">
+                Security Operations Dashboard
+            </h1>
+
+            <p class="text-xs text-gray-500 mt-1">
+                Real-time host monitoring, process telemetry, login activity and file events
+            </p>
+        </div>
+
+        <div class="text-right">
+
+            <div class="text-[10px] text-gray-400 uppercase tracking-wide">
+                Last Dashboard Update
+            </div>
+
+            <div
+                id="dashboardUpdate"
+                class="text-xs font-semibold text-gray-700 mt-1"
+            >
+                --
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         HOST INFORMATION
+    ====================================================== -->
+
+    <div class="card p-4 mb-4">
+
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+            <div>
+
+                <div class="flex items-center gap-2 mb-2">
+
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <span class="text-blue-600 text-sm">PC</span>
+                    </div>
+
+                    <div>
+
+                        <div class="text-sm font-bold text-gray-900">
+                            <span id="hostname">Loading...</span>
+                        </div>
+
+                        <div class="text-[10px] text-gray-400">
+                            Host ID:
+                            <span id="hostId">
+                                PC-001
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-2 text-xs">
+
+                <div>
+                    <div class="text-[10px] text-gray-400 uppercase">
+                        Operating System
+                    </div>
+
+                    <div
+                        id="os"
+                        class="font-semibold text-gray-700 mt-0.5"
+                    >
+                        --
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] text-gray-400 uppercase">
+                        Last Activity
+                    </div>
+
+                    <div
+                        id="lastSeen"
+                        class="font-semibold text-gray-700 mt-0.5"
+                    >
+                        --
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] text-gray-400 uppercase">
+                        Monitoring
+                    </div>
+
+                    <div class="font-semibold text-green-600 mt-0.5">
+                        Active
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         METRICS
+    ====================================================== -->
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+
+
+        <!-- CPU -->
+
+        <div class="card metric-card p-4">
+
+            <div class="flex items-center justify-between">
+
+                <div class="text-[10px] font-semibold text-gray-400 uppercase">
+                    CPU Usage
+                </div>
+
+                <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <span class="text-blue-600 text-xs">CPU</span>
+                </div>
+
+            </div>
+
+            <div class="mt-3 flex items-end gap-1">
+
+                <span
+                    id="cpu"
+                    class="text-2xl font-bold text-gray-900"
+                >
+                    --
+                </span>
+
+                <span class="text-xs text-gray-400 mb-1">
+                    %
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- RAM -->
+
+        <div class="card metric-card p-4">
+
+            <div class="flex items-center justify-between">
+
+                <div class="text-[10px] font-semibold text-gray-400 uppercase">
+                    RAM Usage
+                </div>
+
+                <div class="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
+                    <span class="text-purple-600 text-xs">RAM</span>
+                </div>
+
+            </div>
+
+            <div class="mt-3 flex items-end gap-1">
+
+                <span
+                    id="ram"
+                    class="text-2xl font-bold text-gray-900"
+                >
+                    --
+                </span>
+
+                <span class="text-xs text-gray-400 mb-1">
+                    %
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- DISK -->
+
+        <div class="card metric-card p-4">
+
+            <div class="flex items-center justify-between">
+
+                <div class="text-[10px] font-semibold text-gray-400 uppercase">
+                    Disk Usage
+                </div>
+
+                <div class="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center">
+                    <span class="text-orange-600 text-xs">DSK</span>
+                </div>
+
+            </div>
+
+            <div class="mt-3 flex items-end gap-1">
+
+                <span
+                    id="disk"
+                    class="text-2xl font-bold text-gray-900"
+                >
+                    --
+                </span>
+
+                <span class="text-xs text-gray-400 mb-1">
+                    %
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- PROCESSES -->
+
+        <div class="card metric-card p-4">
+
+            <div class="flex items-center justify-between">
+
+                <div class="text-[10px] font-semibold text-gray-400 uppercase">
+                    Active Processes
+                </div>
+
+                <div class="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center">
+                    <span class="text-green-600 text-xs">PRC</span>
+                </div>
+
+            </div>
+
+            <div class="mt-3 flex items-end gap-1">
+
+                <span
+                    id="processCount"
+                    class="text-2xl font-bold text-gray-900"
+                >
+                    --
+                </span>
+
+                <span class="text-xs text-gray-400 mb-1">
+                    running
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         PROCESS TELEMETRY
+    ====================================================== -->
+
+    <section class="card mb-4">
+
+        <div class="px-4 py-3 border-b border-gray-100">
+
+            <div class="flex items-center justify-between gap-3">
+
+                <div>
+
+                    <div class="section-title">
+                        Process Telemetry
+                    </div>
+
+                    <div class="section-subtitle">
+                        Recent process creation and termination activity
+                    </div>
+
+                </div>
+
+                <div class="flex items-center gap-3">
+
+                    <div
+                        id="processCountLabel"
+                        class="hidden sm:block text-[10px] text-gray-400"
+                    >
+                        0 records
+                    </div>
+
+                    <button
+                        id="processToggle"
+                        class="view-btn"
+                        onclick="toggleRows('processTableBody', 'processToggle')"
+                    >
+                        View More ↓
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>PID</th>
+                        <th>Process</th>
+                        <th>Executable Path</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+
+                <tbody id="processTableBody">
+
+                    <tr>
+                        <td colspan="6" class="loading">
+                            Loading process telemetry...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SECURITY / LOGIN HISTORY
+    ====================================================== -->
+
+    <section class="card mb-4">
+
+        <div class="px-4 py-3 border-b border-gray-100">
+
+            <div class="flex items-center justify-between gap-3">
+
+                <div>
+
+                    <div class="section-title">
+                        Login & Security History
+                    </div>
+
+                    <div class="section-subtitle">
+                        Windows Security Event activity
+                    </div>
+
+                </div>
+
+                <div class="flex items-center gap-3">
+
+                    <div
+                        id="securityCountLabel"
+                        class="hidden sm:block text-[10px] text-gray-400"
+                    >
+                        0 events
+                    </div>
+
+                    <button
+                        id="securityToggle"
+                        class="view-btn"
+                        onclick="toggleRows('securityTableBody', 'securityToggle')"
+                    >
+                        View More ↓
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Event</th>
+                        <th>Event ID</th>
+                        <th>Username</th>
+                        <th>Logon Type</th>
+                        <th>IP Address</th>
+                        <th>Workstation</th>
+                        <th>Authentication</th>
+                        <th>Record ID</th>
+                        <th>Timestamp</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="securityTableBody">
+
+                    <tr>
+                        <td colspan="9" class="loading">
+                            Loading security events...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         FILE ACTIVITY
+    ====================================================== -->
+
+    <section class="card mb-4">
+
+        <div class="px-4 py-3 border-b border-gray-100">
+
+            <div class="flex items-center justify-between gap-3">
+
+                <div>
+
+                    <div class="section-title">
+                        File Activity History
+                    </div>
+
+                    <div class="section-subtitle">
+                        Real-time file creation, modification, deletion and rename events
+                    </div>
+
+                </div>
+
+                <div class="flex items-center gap-3">
+
+                    <div
+                        id="fileCountLabel"
+                        class="hidden sm:block text-[10px] text-gray-400"
+                    >
+                        0 events
+                    </div>
+
+                    <button
+                        id="fileToggle"
+                        class="view-btn"
+                        onclick="toggleRows('fileTableBody', 'fileToggle')"
+                    >
+                        View More ↓
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Event</th>
+                        <th>File Name</th>
+                        <th>File Path</th>
+                        <th>Old Path</th>
+                        <th>Timestamp</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="fileTableBody">
+
+                    <tr>
+                        <td colspan="5" class="loading">
+                            Loading file activity...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SECURITY EVENT REFERENCE
+    ====================================================== -->
+
+    <section class="card mb-5">
+
+        <div class="px-4 py-3 border-b border-gray-100">
+
+            <div class="section-title">
+                Security Event Reference
+            </div>
+
+            <div class="section-subtitle">
+                Windows Security Event IDs monitored by the HIDS agent
+            </div>
+
+        </div>
+
+        <div class="p-4">
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+                <div class="border border-gray-100 rounded-lg p-3 bg-gray-50">
+
+                    <div class="flex items-center gap-2">
+
+                        <span class="badge badge-green">
+                            4624
+                        </span>
+
+                        <span class="text-xs font-semibold text-gray-700">
+                            Login Success
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="border border-gray-100 rounded-lg p-3 bg-gray-50">
+
+                    <div class="flex items-center gap-2">
+
+                        <span class="badge badge-red">
+                            4625
+                        </span>
+
+                        <span class="text-xs font-semibold text-gray-700">
+                            Login Failed
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="border border-gray-100 rounded-lg p-3 bg-gray-50">
+
+                    <div class="flex items-center gap-2">
+
+                        <span class="badge badge-blue">
+                            4634
+                        </span>
+
+                        <span class="text-xs font-semibold text-gray-700">
+                            Logoff
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="border border-gray-100 rounded-lg p-3 bg-gray-50">
+
+                    <div class="flex items-center gap-2">
+
+                        <span class="badge badge-yellow">
+                            4647
+                        </span>
+
+                        <span class="text-xs font-semibold text-gray-700">
+                            User Logoff
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
+
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-gray-400 pb-4">
+
+        <div>
+            AI-HIDS • Host Based Intrusion Detection System
+        </div>
+
+        <div>
+            Auto refresh: 5 seconds
+        </div>
+
+    </div>
+
+</main>
+
+
+<script>
+
+    const HOST_ID = "PC-001";
+
+    /*
+    =========================================================
+    Dashboard state
+    =========================================================
+    */
+
+    const expandedState = {
+        processTableBody: false,
+        securityTableBody: false,
+        fileTableBody: false
+    };
+
+
+    /*
+    =========================================================
+    Helper: Escape HTML
+    =========================================================
+    */
+
+    function escapeHtml(value) {
+
+        if (value === null || value === undefined) {
+            return "-";
+        }
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    /*
+    =========================================================
+    Helper: Format timestamp
+    =========================================================
+    */
+
+    function formatTime(timestamp) {
+
+        if (!timestamp) {
+            return "-";
+        }
+
+        const date = new Date(timestamp);
+
+        if (isNaN(date.getTime())) {
+            return timestamp;
+        }
+
+        return date.toLocaleString();
+    }
+
+
+    /*
+    =========================================================
+    Helper: Event badge
+    =========================================================
+    */
+
+    function eventBadge(eventType) {
+
+        const event = String(eventType || "").toUpperCase();
+
+        if (
+            event.includes("SUCCESS") ||
+            event.includes("CREATED")
+        ) {
+            return `<span class="badge badge-green">${escapeHtml(event)}</span>`;
+        }
+
+        if (
+            event.includes("FAILED") ||
+            event.includes("DELETED")
+        ) {
+            return `<span class="badge badge-red">${escapeHtml(event)}</span>`;
+        }
+
+        if (
+            event.includes("MODIFIED") ||
+            event.includes("LOGOFF")
+        ) {
+            return `<span class="badge badge-blue">${escapeHtml(event)}</span>`;
+        }
+
+        if (
+            event.includes("RENAMED") ||
+            event.includes("USER_LOGOFF")
+        ) {
+            return `<span class="badge badge-yellow">${escapeHtml(event)}</span>`;
+        }
+
+        return `<span class="badge badge-gray">${escapeHtml(event || "UNKNOWN")}</span>`;
+    }
+
+
+    /*
+    =========================================================
+    Helper: Safe API request
+    =========================================================
+    */
+
+    async function fetchJson(url) {
+
+        const response = await fetch(url, {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status} - ${response.statusText}`
+            );
+        }
+
+        return await response.json();
+    }
+
+
+    /*
+    =========================================================
+    HOST DATA
+    =========================================================
+    */
+
+    async function updateHost() {
+
+        try {
+
+            const data = await fetchJson(
+                `/api/host/${HOST_ID}`
+            );
+
+            if (!data.success || !data.host) {
+                throw new Error("Host data not available");
+            }
+
+            const host = data.host;
+
+            document.getElementById("hostname").textContent =
+                host.hostname || HOST_ID;
+
+            document.getElementById("hostId").textContent =
+                host.hostId || HOST_ID;
+
+            document.getElementById("navHostId").textContent =
+                host.hostId || HOST_ID;
+
+            document.getElementById("os").textContent =
+                host.os || "Unknown";
+
+            document.getElementById("cpu").textContent =
+                Number(host.cpu || 0).toFixed(1);
+
+            document.getElementById("ram").textContent =
+                Number(host.ram || 0).toFixed(1);
+
+            document.getElementById("disk").textContent =
+                Number(host.disk || 0).toFixed(1);
+
+            document.getElementById("processCount").textContent =
+                host.processCount ?? 0;
+
+            document.getElementById("lastSeen").textContent =
+                formatTime(host.lastSeen);
+
+
+            /*
+            =================================================
+            Online / Offline
+            =================================================
+            */
+
+            let online = false;
+
+            if (host.lastSeen) {
+
+                const lastSeenTime =
+                    new Date(host.lastSeen).getTime();
+
+                const now = Date.now();
+
+                online =
+                    now - lastSeenTime <= 15000;
+            }
+
+
+            const statusText =
+                document.getElementById("navStatusText");
+
+            const statusDot =
+                document.getElementById("navStatusDot");
+
+            if (online) {
+
+                statusText.textContent = "ONLINE";
+
+                statusText.className =
+                    "text-[10px] font-semibold text-green-400";
+
+                statusDot.className =
+                    "status-dot online-dot";
+
+            } else {
+
+                statusText.textContent = "OFFLINE";
+
+                statusText.className =
+                    "text-[10px] font-semibold text-red-400";
+
+                statusDot.className =
+                    "status-dot offline-dot";
+            }
+
+
+        } catch (error) {
+
+            console.error("Host API Error:", error);
+
+        }
+
+    }
+
+
+    /*
+    =========================================================
+    PROCESS TELEMETRY
+    =========================================================
+    */
+
+    async function updateProcesses() {
+
+        const table =
+            document.getElementById("processTableBody");
+
+        try {
+
+            const data = await fetchJson(
+                `/api/processes/${HOST_ID}`
+            );
+
+            const processes = Array.isArray(data.processes)
+                ? data.processes
+                : [];
+
+            document.getElementById("processCountLabel").textContent =
+                `${data.count ?? processes.length} records`;
+
+
+            if (processes.length === 0) {
+
+                table.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty">
+                            No process telemetry available
+                        </td>
+                    </tr>
+                `;
+
+                return;
+            }
+
+
+            table.innerHTML = processes.map((process, index) => {
+
+                const status =
+                    process.status ||
+                    process.eventType ||
+                    (process.terminated ? "TERMINATED" : "RUNNING");
+
+                const statusUpper =
+                    String(status).toUpperCase();
+
+                let statusHtml;
+
+                if (
+                    statusUpper.includes("TERMIN") ||
+                    statusUpper.includes("STOP")
+                ) {
+
+                    statusHtml =
+                        `<span class="badge badge-red">${escapeHtml(statusUpper)}</span>`;
+
+                } else {
+
+                    statusHtml =
+                        `<span class="badge badge-green">${escapeHtml(statusUpper || "RUNNING")}</span>`;
+                }
+
+
+                return `
+                    <tr class="${index >= 5 ? "hidden-row" : ""}">
+
+                        <td class="font-semibold text-gray-700">
+                            ${escapeHtml(process.pid)}
+                        </td>
+
+                        <td class="font-medium text-gray-800">
+                            ${escapeHtml(
+                                process.processName ||
+                                process.name ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td
+                            class="max-w-[320px] truncate"
+                            title="${escapeHtml(
+                                process.executablePath ||
+                                process.path ||
+                                "-"
+                            )}"
+                        >
+                            ${escapeHtml(
+                                process.executablePath ||
+                                process.path ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                process.username ||
+                                process.user ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${statusHtml}
+                        </td>
+
+                        <td>
+                            ${formatTime(
+                                process.timestamp ||
+                                process.createdAt ||
+                                process.updatedAt
+                            )}
+                        </td>
+
+                    </tr>
+                `;
+
+            }).join("");
+
+
+            updateToggleButton(
+                "processTableBody",
+                "processToggle"
+            );
+
+
+        } catch (error) {
+
+            console.error("Process API Error:", error);
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="6" class="error-row">
+                        Unable to load process telemetry
+                    </td>
+                </tr>
+            `;
+        }
+
+    }
+
+
+    /*
+    =========================================================
+    SECURITY EVENTS
+    =========================================================
+    */
+
+    async function updateSecurityEvents() {
+
+        const table =
+            document.getElementById("securityTableBody");
+
+        try {
+
+            const data = await fetchJson(
+                `/api/security-events/${HOST_ID}`
+            );
+
+            const events = Array.isArray(data.events)
+                ? data.events
+                : [];
+
+            document.getElementById("securityCountLabel").textContent =
+                `${data.count ?? events.length} events`;
+
+
+            if (events.length === 0) {
+
+                table.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="empty">
+                            No security events available
+                        </td>
+                    </tr>
+                `;
+
+                return;
+            }
+
+
+            table.innerHTML = events.map((event, index) => {
+
+                return `
+                    <tr class="${index >= 5 ? "hidden-row" : ""}">
+
+                        <td>
+                            ${eventBadge(event.eventType)}
+                        </td>
+
+                        <td class="font-semibold">
+                            ${escapeHtml(event.eventId)}
+                        </td>
+
+                        <td class="font-medium">
+                            ${escapeHtml(event.username)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(event.logonType)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(event.ipAddress)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(event.workstationName)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                event.authenticationPackageName
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(event.recordId)}
+                        </td>
+
+                        <td>
+                            ${formatTime(event.timestamp)}
+                        </td>
+
+                    </tr>
+                `;
+
+            }).join("");
+
+
+            updateToggleButton(
+                "securityTableBody",
+                "securityToggle"
+            );
+
+
+        } catch (error) {
+
+            console.error("Security API Error:", error);
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="9" class="error-row">
+                        Unable to load security events
+                    </td>
+                </tr>
+            `;
+        }
+
+    }
+
+
+    /*
+    =========================================================
+    FILE EVENTS
+    =========================================================
+    */
+
+    async function updateFileEvents() {
+
+        const table =
+            document.getElementById("fileTableBody");
+
+        try {
+
+            const data = await fetchJson(
+                `/api/file-events/${HOST_ID}`
+            );
+
+            const events = Array.isArray(data.events)
+                ? data.events
+                : [];
+
+            document.getElementById("fileCountLabel").textContent =
+                `${data.count ?? events.length} events`;
+
+
+            if (events.length === 0) {
+
+                table.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty">
+                            No file activity available
+                        </td>
+                    </tr>
+                `;
+
+                return;
+            }
+
+
+            table.innerHTML = events.map((event, index) => {
+
+                return `
+                    <tr class="${index >= 5 ? "hidden-row" : ""}">
+
+                        <td>
+                            ${eventBadge(event.eventType)}
+                        </td>
+
+                        <td class="font-medium text-gray-800">
+                            ${escapeHtml(event.fileName)}
+                        </td>
+
+                        <td
+                            class="max-w-[400px] truncate"
+                            title="${escapeHtml(event.filePath)}"
+                        >
+                            ${escapeHtml(event.filePath)}
+                        </td>
+
+                        <td
+                            class="max-w-[300px] truncate"
+                            title="${escapeHtml(event.oldPath)}"
+                        >
+                            ${escapeHtml(event.oldPath)}
+                        </td>
+
+                        <td>
+                            ${formatTime(event.timestamp)}
+                        </td>
+
+                    </tr>
+                `;
+
+            }).join("");
+
+
+            updateToggleButton(
+                "fileTableBody",
+                "fileToggle"
+            );
+
+
+        } catch (error) {
+
+            console.error("File API Error:", error);
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="5" class="error-row">
+                        Unable to load file activity
+                    </td>
+                </tr>
+            `;
+        }
+
+    }
+
+
+    /*
+    =========================================================
+    VIEW MORE / VIEW LESS
+    =========================================================
+    */
+
+    function toggleRows(tableId, buttonId) {
+
+        const table =
+            document.getElementById(tableId);
+
+        const button =
+            document.getElementById(buttonId);
+
+        const isExpanded =
+            expandedState[tableId];
+
+        expandedState[tableId] =
+            !isExpanded;
+
+        const rows =
+            table.querySelectorAll("tr");
+
+        rows.forEach((row, index) => {
+
+            if (index >= 5) {
+
+                if (expandedState[tableId]) {
+
+                    row.classList.remove("hidden-row");
+
+                } else {
+
+                    row.classList.add("hidden-row");
+                }
+            }
+        });
+
+
+        updateToggleButton(tableId, buttonId);
+    }
+
+
+    /*
+    =========================================================
+    UPDATE BUTTON TEXT
+    =========================================================
+    */
+
+    function updateToggleButton(tableId, buttonId) {
+
+        const table =
+            document.getElementById(tableId);
+
+        const button =
+            document.getElementById(buttonId);
+
+        if (!table || !button) {
+            return;
+        }
+
+
+        const rows =
+            Array.from(
+                table.querySelectorAll("tr")
+            );
+
+
+        /*
+        If there are 5 or fewer actual rows,
+        hide the button.
+        */
+
+        if (rows.length <= 5) {
+
+            button.classList.add("hidden");
+
+            return;
+        }
+
+
+        button.classList.remove("hidden");
+
+
+        if (expandedState[tableId]) {
+
+            button.textContent =
+                "View Less ↑";
+
+        } else {
+
+            button.textContent =
+                "View More ↓";
+        }
+
+    }
+
+
+    /*
+    =========================================================
+    DASHBOARD UPDATE TIME
+    =========================================================
+    */
+
+    function updateDashboardTime() {
+
+        document.getElementById(
+            "dashboardUpdate"
+        ).textContent =
+            new Date().toLocaleTimeString();
+
+    }
+
+
+    /*
+    =========================================================
+    UPDATE EVERYTHING
+    =========================================================
+    */
+
+    async function updateDashboard() {
+
+        updateDashboardTime();
+
+        await Promise.allSettled([
+            updateHost(),
+            updateProcesses(),
+            updateSecurityEvents(),
+            updateFileEvents()
+        ]);
+
+    }
+
+
+    /*
+    =========================================================
+    INITIAL LOAD
+    =========================================================
+    */
+
+    updateDashboard();
+
+
+    /*
+    =========================================================
+    AUTO REFRESH
+    =========================================================
+    */
+
+    setInterval(
+        updateDashboard,
+        5000
+    );
+
+</script>
+
+</body>
+</html>

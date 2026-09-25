@@ -12,7 +12,8 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.6",
+    "ejs": "^6.0.1",
     "express": "^5.2.1",
-    "mongoose": "^8.24.2"
+    "mongoose": "^8.24.3"
   }
 }
